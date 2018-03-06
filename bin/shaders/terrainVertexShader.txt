@@ -1,0 +1,54 @@
+#version 400 core
+
+//VERTEX SHADER
+
+//Input stuff from the VAO
+in vec3 position;
+in vec2 textureCoords;
+in vec3 normal;
+
+//outputs for the fragment shader
+out vec2 pass_textureCoords;
+out vec3 surfaceNormal;
+out vec3 toLightVector;
+out vec3 toCameraVector;
+out float visibility;
+
+//uniform variables
+uniform mat4 transformationMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 viewMatrix;
+uniform vec3 lightPosition;
+
+//constants
+const float gradient = 5;
+const float density = 0.002;
+
+
+//This is the main function that gets run once for every vertex 
+void main(void) {
+	//convert the inputed 3D vector into a 4D vector and multiply by transformation
+	vec4 worldPosition = transformationMatrix * vec4(position, 1.0);
+	
+	//position relative to the camera
+	vec4 positionRelativeToCam = viewMatrix * worldPosition;
+	
+	//multiply world position and camera and projection
+	gl_Position = projectionMatrix * positionRelativeToCam;
+	
+	//we can just pass the texture coords as is, 
+	pass_textureCoords = textureCoords * 40.0;
+	
+	//Convert the normal into a 4D matrix and multiply by the transformation matrix
+	surfaceNormal = (transformationMatrix * vec4(normal, 0.0)).xyz;
+	toLightVector = lightPosition - worldPosition.xyz;
+	
+	//Calculate the toCameraVector
+	toCameraVector = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz - worldPosition.xyz;
+	
+	//Calculate visibility
+	float distance = length(positionRelativeToCam.xyz);
+	visibility = exp(-pow((distance * density), gradient));
+	visibility = clamp(visibility, 0.0, 1.0);
+	
+}
